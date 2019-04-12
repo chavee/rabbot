@@ -92,7 +92,8 @@ function trim (x) {
   return x.trim(' ');
 }
 
-const Adapter = function (parameters) {
+const Adapter = function (_parameters) {
+  var parameters = JSON.parse(JSON.stringify(_parameters));
   var uriOpts = parseUri(parameters.uri);
   Object.assign(parameters, uriOpts);
   const hosts = getOption(parameters, 'host');
