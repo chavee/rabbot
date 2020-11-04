@@ -21,7 +21,7 @@ const os = require('os');
 
 function getArgs (fn) {
   const fnString = fn.toString();
-  const argList = /[(]([^)]*)[)]/.exec(fnString)[ 1 ].split(',');
+  const argList = /[(]([^)]*)[)]/.exec(fnString)[1].split(',');
   return argList.map(String.prototype.trim);
 }
 
@@ -43,7 +43,7 @@ function getOption (opts, key, alt) {
   if (opts.get && supportsDefaults(opts.get)) {
     return opts.get(key, alt);
   } else {
-    return opts[ key ] || alt;
+    return opts[key] || alt;
   }
 }
 
@@ -59,13 +59,12 @@ function max (x, y) {
 
 function parseUri (uri) {
   if (uri) {
-    var parsed = url.parse(uri);
-    var authSplit = parsed.auth ? parsed.auth.split(':') : [ null, null ];
-    var heartbeat = parsed.query ? parsed.query.split('&')[ 0 ].split('=')[ 1 ] : null;
+    const parsed = new url.URL(uri);
+    const heartbeat = parsed.searchParams.get('heartbeat');
     return {
       useSSL: parsed.protocol === 'amqps:',
-      user: authSplit[ 0 ],
-      pass: authSplit[ 1 ],
+      user: parsed.username,
+      pass: parsed.password,
       host: parsed.hostname,
       port: parsed.port,
       vhost: parsed.pathname ? parsed.pathname.slice(1) : undefined,
@@ -76,7 +75,7 @@ function parseUri (uri) {
 
 function split (x) {
   if (typeof x === 'number') {
-    return [ x ];
+    return [x];
   } else if (Array.isArray(x)) {
     return x;
   } else {
@@ -92,8 +91,16 @@ function trim (x) {
   return x.trim(' ');
 }
 
+<<<<<<< HEAD
 const Adapter = function (_parameters) {
   var parameters = JSON.parse(JSON.stringify(_parameters));
+=======
+function readFromFileIfPathOrDefaultToInput (possiblePathOrValue) {
+  return fs.existsSync(possiblePathOrValue) ? fs.readFileSync(possiblePathOrValue) : possiblePathOrValue;
+}
+
+const Adapter = function (parameters) {
+>>>>>>> 13315d3fb6d140106ef20e5ca67c4467867575cf
   var uriOpts = parseUri(parameters.uri);
   Object.assign(parameters, uriOpts);
   const hosts = getOption(parameters, 'host');
@@ -123,22 +130,20 @@ const Adapter = function (_parameters) {
     this.options.timeout = timeout;
   }
   if (certPath) {
-    this.options.cert = fs.existsSync(certPath) ? fs.readFileSync(certPath) : certPath;
+    this.options.cert = readFromFileIfPathOrDefaultToInput(certPath);
   }
   if (keyPath) {
-    this.options.key = fs.existsSync(keyPath) ? fs.readFileSync(keyPath) : keyPath;
+    this.options.key = readFromFileIfPathOrDefaultToInput(keyPath);
   }
   if (passphrase) {
     this.options.passphrase = passphrase;
   }
   if (pfxPath) {
-    this.options.pfx = fs.existsSync(pfxPath) ? fs.readFileSync(pfxPath) : pfxPath;
+    this.options.pfx = readFromFileIfPathOrDefaultToInput(pfxPath);
   }
   if (caPaths) {
     const list = caPaths.split(',');
-    this.options.ca = list.map((caPath) => {
-      fs.existsSync(caPath) ? fs.readFileSync(caPath) : caPath; // eslint-disable-line no-unused-expressions
-    });
+    this.options.ca = list.map(readFromFileIfPathOrDefaultToInput);
   }
   if (useSSL) {
     this.protocol = 'amqps://';
@@ -175,7 +180,8 @@ Adapter.prototype.connect = function () {
         }
       }
       if (attempted.indexOf(nextUri) < 0) {
-        amqp.connect(nextUri, Object.assign({ servername: url.parse(nextUri).hostname }, this.options))
+        const serverHostname = new url.URL(nextUri).hostname;
+        amqp.connect(nextUri, Object.assign({ servername: serverHostname }, this.options))
           .then(onConnection.bind(this), onConnectionError.bind(this));
       } else {
         log.info('Cannot connect to `%s` - all endpoints failed', this.name);
@@ -203,9 +209,9 @@ Adapter.prototype.getNextUri = function () {
 
 Adapter.prototype.getNext = function (list) {
   if (this.connectionIndex >= list.length) {
-    return list[ 0 ];
+    return list[0];
   } else {
-    return list[ this.connectionIndex ];
+    return list[this.connectionIndex];
   }
 };
 
